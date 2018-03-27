@@ -2,6 +2,7 @@ require 'byebug'
 require_relative 'tile'
 
 class Board
+  POS_DIFF = [[-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1], [-1, -1]]
 
   attr_accessor :grid
 
@@ -10,24 +11,28 @@ class Board
   end
 
   def setup_grid
-    output = Array.new(9) { Array.new(9) { Tile.new } }
+    raw_grid = Array.new(9) { Array.new(9) { Tile.new } }
 
-    possible_positions = random_positions(9, 9)
+    possible_bomb_positions = random_positions(9, 9)
 
     9.times do
-      pos = possible_positions.pop
-      output[pos[0]][pos[1]].bomb = true
-      update_adjacent_bomb(output, pos)
+      center_pos = possible_bomb_positions.pop
+      raw_grid[center_pos[0]][center_pos[1]].bomb = true
+
+      neighbor_pos = possible_adjacent_positions(center_pos)
+      neighbor_pos.each {|pos| raw_grid[pos[0]][pos[1]].adjacent_bombs += 1}
     end
 
-    output
+    raw_grid
   end
 
   def render
-    puts "  #{(0...@grid.length).to_a.join(" ")}"
+    puts "    #{(0...@grid.length).to_a.join("   ")}"
+    puts "   -----------------------------------"
     @grid.each_with_index do |row, idx|
       to_s_row = row.map {|tile| tile.to_s}
-      puts "#{idx} #{to_s_row.join(" ")}"
+      puts "#{idx} | #{to_s_row.join(" | ")} |"
+      puts "   -----------------------------------"
     end
   end
 
@@ -44,6 +49,27 @@ class Board
     (grid.length * grid[0].length) - revealed_tiles == 9
   end
 
+  def update_board(pos)
+    unless self[pos].bomb || self[pos].flagged# Do nothing if the revealed pos is a bomb
+      # debugger
+      arr = [pos] # if it is not a bomb
+      until arr.empty?
+        # debugger
+        current_pos = arr.shift # take out the first position
+        self[current_pos].reveal unless self[current_pos].bomb || self[current_pos].flagged# will reveal it unless it is a bomb
+
+        unless self[current_pos].adjacent_bombs > 0 # will add first positions neighbors unless it has adjacent bombs
+          possible_adjacent_positions(current_pos).each do |pos|
+            arr << pos unless self[pos].revealed
+            # will not shovel to arr if the position is already revealed or flagged
+          end
+        end
+        # arr += possible_adjacent_positions(current_pos) unless self[current_pos].adjacent_bombs > 0
+
+      end
+    end
+  end
+
   def [](pos)
     row, col = pos
     grid[row][col]
@@ -57,24 +83,23 @@ class Board
   private
 
   def random_positions(rows, cols)
-    possible_positions = []
+    possible_bomb_positions = []
     (0...rows).each do |i|
-      (0...cols).each {|j| possible_positions << [i, j]}
+      (0...cols).each {|j| possible_bomb_positions << [i, j]}
     end
 
-    possible_positions.shuffle
+    possible_bomb_positions.shuffle
   end
 
-  def update_adjacent_bomb(output, pos)
-    position_differentials = [-1,0,1].permutation(2).to_a + [[1, 1], [-1, -1]]
-
-    position_differentials.each do |diff|
-      new_pos = [pos[0] + diff[0], pos[1] + diff[1]]
-      if (0...9).include?(new_pos[0]) && (0...9).include?(new_pos[1])
-        output[new_pos[0]][new_pos[1]].adjacent_bombs += 1
+  def possible_adjacent_positions(center_pos)
+    POS_DIFF.map do |diff|
+      new_pos = [center_pos[0] + diff[0], center_pos[1] + diff[1]]
+      if new_pos[0].between?(0, 8) && new_pos[1].between?(0, 8)
+        new_pos
       end
-    end
+    end.compact
   end
+
 
   def bomb_revealed?
     (0...grid.length).each do |i|
@@ -88,4 +113,3 @@ end
 
 board = Board.new
 # p board.grid
-board.render
