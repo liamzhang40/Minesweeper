@@ -3,7 +3,7 @@ require_relative 'tile'
 
 class Board
   POS_DIFF = [[-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1], [-1, -1]]
-
+  BOMBS = 9
   attr_accessor :grid
 
   def initialize
@@ -15,7 +15,7 @@ class Board
 
     possible_bomb_positions = random_positions(9, 9)
 
-    9.times do
+    BOMBS.times do
       center_pos = possible_bomb_positions.pop
       raw_grid[center_pos[0]][center_pos[1]].bomb = true
 
@@ -37,16 +37,16 @@ class Board
   end
 
   def over?
-    return true if bomb_revealed?
+    return true if any_bomb_revealed? || all_tiles_but_bombs_revealed?
 
-    revealed_tiles = 0
-    (0...grid.length).each do |i|
-      (0...grid[i].length).each do |j|
-        revealed_tiles += 1 if grid[i][j].revealed
-      end
-    end
-
-    (grid.length * grid[0].length) - revealed_tiles == 9
+    # revealed_tiles = 0
+    # (0...grid.length).each do |i|
+    #   (0...grid[i].length).each do |j|
+    #     revealed_tiles += 1 if grid[i][j].revealed
+    #   end
+    # end
+    #
+    # (grid.length * grid[0].length) - revealed_tiles == BOMBS
   end
 
   def update_board(pos)
@@ -80,6 +80,23 @@ class Board
     @grid[row][col] = value
   end
 
+  def all_tiles_but_bombs_revealed?
+    (0...grid.length).each do |i|
+      (0...grid[i].length).each do |j|
+        return false if !self[[i, j]].bomb && !self[[i, j]].revealed
+      end
+    end
+    true
+  end
+
+  def any_bomb_revealed?
+    (0...grid.length).each do |i|
+      (0...grid[i].length).each do |j|
+        return true if self[[i, j]].bomb && self[[i, j]].revealed
+      end
+    end
+  end
+
   private
 
   def random_positions(rows, cols)
@@ -100,14 +117,6 @@ class Board
     end.compact
   end
 
-
-  def bomb_revealed?
-    (0...grid.length).each do |i|
-      (0...grid[i].length).each do |j|
-        return true if grid[i][j].revealed_bomb?
-      end
-    end
-  end
 
 end
 

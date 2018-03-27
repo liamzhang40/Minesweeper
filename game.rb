@@ -11,10 +11,12 @@ class Game
   end
 
   def run
+    puts "Minesweeper!!!"
     until over?
       display
       take_turn
     end
+    puts board.any_bomb_revealed? ? "You lost!!" : "You won!!"
   end
 
   def over?
@@ -71,8 +73,4 @@ class Game
 end
 
 
-game = Game.new
-while true
-  game.display
-  game.take_turn
-end
+game = Game.new.run

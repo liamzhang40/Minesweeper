@@ -37,10 +37,6 @@ class Tile
     end
   end
 
-  def revealed_bomb?
-    @bomb && @revealed
-  end
-
   def reveal
     @revealed = true
   end
